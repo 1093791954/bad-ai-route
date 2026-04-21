@@ -14,6 +14,8 @@ export interface Settings {
   listen_host: string
   listen_port: number
   cooldown_seconds: number
+  probe_enabled: boolean
+  probe_interval_seconds: number
   upstream: UpstreamConfig
   models: ModelEntry[]
 }
@@ -23,6 +25,10 @@ export interface ModelHealth {
   cooldown_remaining: number
   last_error_code: number | null
   last_error_msg: string
+  last_probe_at: number | null
+  last_probe_latency_ms: number | null
+  last_probe_ok: boolean | null
+  last_probe_error: string
 }
 
 export interface HealthResponse {
@@ -59,6 +65,17 @@ async function request<T>(
   return resp.json()
 }
 
+export interface ProbeResult {
+  ok: boolean
+  latency_ms: number
+  error: string
+}
+
+export interface ProbeHealthResponse {
+  status: string
+  results: Record<string, ProbeResult>
+}
+
 export const api = {
   getConfig: () => request<Settings>('/api/config'),
   updateConfig: (settings: Settings) =>
@@ -71,4 +88,11 @@ export const api = {
   getHealth: () => request<HealthResponse>('/api/health'),
   resetHealth: () =>
     request<{ status: string }>('/api/health/reset', { method: 'POST' }),
+  probeHealth: () =>
+    request<ProbeHealthResponse>('/api/health/probe', { method: 'POST' }),
+  probeModelHealth: (name: string) =>
+    request<{ status: string; result: ProbeResult }>(
+      `/api/health/probe/${encodeURIComponent(name)}`,
+      { method: 'POST' }
+    ),
 }

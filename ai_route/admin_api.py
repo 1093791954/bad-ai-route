@@ -14,6 +14,7 @@ from .config import (
     ModelEntry,
 )
 from .state import cooldown_tracker
+from .prober import probe_all, probe_model, notify_config_changed
 
 router = APIRouter(prefix="/api")
 
@@ -48,6 +49,7 @@ async def update_config(request: Request):
         # Validate and save
         new_settings = Settings.model_validate(data)
         save_settings(new_settings)
+        notify_config_changed()
 
         return JSONResponse({"status": "ok", "message": "Configuration saved"})
 
@@ -112,6 +114,21 @@ async def probe_models():
     })
 
 
+@router.post("/health/probe")
+async def probe_health():
+    """Probe all enabled models immediately."""
+    results = await probe_all(only_enabled=True)
+    return JSONResponse({"status": "ok", "results": results})
+
+@router.post("/health/probe/{model_name}")
+async def probe_model_health(model_name: str):
+    """Probe a single model immediately."""
+    ok, latency_ms, error = await probe_model(model_name)
+    return JSONResponse({
+        "status": "ok",
+        "result": {"ok": ok, "latency_ms": latency_ms, "error": error},
+    })
+
 @router.get("/health")
 async def get_health():
     """Get health status of all configured models."""
@@ -129,6 +146,10 @@ async def get_health():
                 "cooldown_remaining": 0,
                 "last_error_code": None,
                 "last_error_msg": "",
+                "last_probe_at": None,
+                "last_probe_latency_ms": None,
+                "last_probe_ok": None,
+                "last_probe_error": "",
             }
 
     return JSONResponse({

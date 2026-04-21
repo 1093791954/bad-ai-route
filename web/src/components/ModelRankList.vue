@@ -10,6 +10,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:models', v: ModelEntry[]): void
+  (e: 'probe-one', name: string): void
 }>()
 
 const newModelName = ref('')
@@ -44,11 +45,20 @@ function addModel() {
 function statusOf(name: string): { text: string; cls: string } {
   const h = props.health[name]
   if (!h) return { text: '—', cls: 'status-idle' }
-  if (h.available) return { text: '可用', cls: 'status-ok' }
+  if (h.available) {
+    if (h.last_probe_ok && h.last_probe_latency_ms != null) {
+      return { text: `可用 ${Math.round(h.last_probe_latency_ms)}ms`, cls: 'status-ok' }
+    }
+    return { text: '可用', cls: 'status-ok' }
+  }
   return {
     text: `冷却 ${Math.ceil(h.cooldown_remaining)}s`,
     cls: 'status-cooldown',
   }
+}
+
+function probeOne(name: string) {
+  emit('probe-one', name)
 }
 </script>
 
@@ -81,6 +91,7 @@ function statusOf(name: string): { text: string; cls: string } {
           <span class="status-badge" :class="statusOf(element.name).cls">
             {{ statusOf(element.name).text }}
           </span>
+          <button @click="probeOne(element.name)" title="立即探测">探测</button>
           <button @click="removeModel(index)" title="移除">✕</button>
         </li>
       </template>

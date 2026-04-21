@@ -28,6 +28,8 @@ class Settings(BaseModel):
     listen_host: str = "127.0.0.1"
     listen_port: int = 18624
     cooldown_seconds: int = Field(default=30, description="Cooldown duration after model failure")
+    probe_enabled: bool = Field(default=True, description="Enable background health probing")
+    probe_interval_seconds: int = Field(default=300, ge=10, description="Interval between health probes in seconds")
     upstream: UpstreamConfig = Field(default_factory=UpstreamConfig)
     models: list[ModelEntry] = Field(default_factory=list)
 

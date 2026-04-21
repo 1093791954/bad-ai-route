@@ -14,6 +14,10 @@ class CooldownEntry:
     cooldown_until: float = 0.0
     last_error_code: Optional[int] = None
     last_error_msg: str = ""
+    last_probe_at: Optional[float] = None
+    last_probe_latency_ms: Optional[float] = None
+    last_probe_ok: Optional[bool] = None
+    last_probe_error: str = ""
 
 
 class CooldownTracker:
@@ -62,6 +66,22 @@ class CooldownTracker:
             remaining = entry.cooldown_until - time.time()
             return max(0.0, remaining)
 
+    def mark_probe(
+        self,
+        model_name: str,
+        *,
+        ok: bool,
+        latency_ms: Optional[float] = None,
+        error: str = "",
+    ) -> None:
+        """Record a probe result (success or failure metadata only)."""
+        with self._lock:
+            entry = self._entries.setdefault(model_name, CooldownEntry())
+            entry.last_probe_at = time.time()
+            entry.last_probe_latency_ms = latency_ms
+            entry.last_probe_ok = ok
+            entry.last_probe_error = error if not ok else ""
+
     def snapshot(self) -> dict[str, dict]:
         """Get a snapshot of all model states for /api/health."""
         with self._lock:
@@ -74,6 +94,10 @@ class CooldownTracker:
                     "cooldown_remaining": round(remaining, 1),
                     "last_error_code": entry.last_error_code,
                     "last_error_msg": entry.last_error_msg,
+                    "last_probe_at": entry.last_probe_at,
+                    "last_probe_latency_ms": entry.last_probe_latency_ms,
+                    "last_probe_ok": entry.last_probe_ok,
+                    "last_probe_error": entry.last_probe_error,
                 }
             return result
 

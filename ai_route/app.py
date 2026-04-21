@@ -1,6 +1,7 @@
 """FastAPI application setup and route mounting."""
 
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -11,11 +12,25 @@ from fastapi.responses import RedirectResponse
 from .anthropic_proxy import router as anthropic_router
 from .openai_proxy import router as openai_router
 from .admin_api import router as admin_router
+from .prober import start_prober, stop_prober
+from .upstream import close_client
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_prober()
+    try:
+        yield
+    finally:
+        await stop_prober()
+        await close_client()
+
 
 app = FastAPI(
     title="AI-Route",
     description="Multi-model fallback proxy for OpenAI/Anthropic APIs",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # CORS middleware for web UI

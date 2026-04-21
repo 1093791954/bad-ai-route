@@ -9,6 +9,8 @@ const settings = ref<Settings>({
   listen_host: '127.0.0.1',
   listen_port: 18624,
   cooldown_seconds: 30,
+  probe_enabled: true,
+  probe_interval_seconds: 300,
   upstream: {
     base_url: '',
     api_key: '',
@@ -123,8 +125,36 @@ function onUpdateCooldown(v: number) {
   settings.value.cooldown_seconds = v
 }
 
+function onUpdateProbeEnabled(v: boolean) {
+  settings.value.probe_enabled = v
+}
+
+function onUpdateProbeInterval(v: number) {
+  settings.value.probe_interval_seconds = v
+}
+
 function onUpdateModels(v: ModelEntry[]) {
   settings.value.models = v
+}
+
+async function probeAllNow() {
+  try {
+    await api.probeHealth()
+    await refreshHealth()
+    showToast('已触发全量探测', 'success')
+  } catch (e: any) {
+    showToast(`探测失败: ${e.message}`, 'error')
+  }
+}
+
+async function probeOneModel(name: string) {
+  try {
+    await api.probeModelHealth(name)
+    await refreshHealth()
+    showToast(`已探测 ${name}`, 'success')
+  } catch (e: any) {
+    showToast(`探测失败: ${e.message}`, 'error')
+  }
 }
 
 onMounted(async () => {
@@ -145,8 +175,12 @@ onUnmounted(() => {
   <UpstreamForm
     :upstream="settings.upstream"
     :cooldown-seconds="settings.cooldown_seconds"
+    :probe-enabled="settings.probe_enabled"
+    :probe-interval-seconds="settings.probe_interval_seconds"
     @update:upstream="onUpdateUpstream"
     @update:cooldown-seconds="onUpdateCooldown"
+    @update:probe-enabled="onUpdateProbeEnabled"
+    @update:probe-interval-seconds="onUpdateProbeInterval"
     @probe="probeModels"
   />
 
@@ -154,6 +188,7 @@ onUnmounted(() => {
     :models="settings.models"
     :health="health"
     @update:models="onUpdateModels"
+    @probe-one="probeOneModel"
   />
 
   <div class="card">
@@ -162,6 +197,7 @@ onUnmounted(() => {
         {{ saving ? '保存中...' : '保存配置' }}
       </button>
       <button @click="resetCooldowns">手动清除冷却</button>
+      <button @click="probeAllNow">立即全量探测</button>
       <button @click="probeModels" :disabled="probing">
         {{ probing ? '拉取中...' : '拉取模型列表' }}
       </button>
