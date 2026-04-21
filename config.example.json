@@ -1,0 +1,12 @@
+{
+  "listen_host": "127.0.0.1",
+  "listen_port": 18624,
+  "cooldown_seconds": 30,
+  "upstream": {
+    "base_url": "https://your-newapi-host.example.com",
+    "api_key": "sk-REPLACE-ME",
+    "request_timeout": 60.0,
+    "first_chunk_timeout": 20.0
+  },
+  "models": []
+}

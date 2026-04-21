@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.pytest_cache/
+build/
+dist/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Node / frontend
+web/node_modules/
+web/dist/
+web/.vite/
+
+# Build artifacts (frontend 构建产物，按需 build 生成)
+ai_route/static/
+
+# Runtime config (含真实 API key)
+config.json
+
+# Logs
+*.log
+server.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code 工作目录（本地个性化设置）
+.claude/
