@@ -1,14 +1,18 @@
-# AI-Route
+# bad-ai-route
 
-多上游模型 Fallback 反代。对外同时暴露 Anthropic (`/v1/messages`) 和 OpenAI (`/v1/chat/completions`) 协议，按配置的模型顺序依次尝试，任一失败自动切换到下一个。
+> 一群臭皮匠顶一个诸葛亮。
+
+你的每一个上游 AI 渠道都不太行？没关系。`bad-ai-route` 把一堆不稳定的模型渠道排成队列，按优先级依次尝试 —— A 挂了自动切 B，B 也挂了切 C，直到有一个能用的为止。对外暴露标准的 OpenAI 和 Anthropic 兼容接口，客户端无感知切换。
+
+**核心思路：单个渠道不可靠，但总有一个能用。**
 
 ## 架构
 
 ```
-Claude Code / OpenAI SDK  ──▶  本地反代 (:18624)  ──▶  newapi (统一上游)
-                               ├─ /v1/messages
-                               ├─ /v1/chat/completions
-                               └─ /ui  (Vue 配置页)
+Claude Code / OpenAI SDK  ──▶  本地反代 (:18624)  ──▶  上游渠道 (newapi 等)
+                               ├─ /v1/messages          (Anthropic 协议)
+                               ├─ /v1/chat/completions  (OpenAI 协议)
+                               └─ /ui                   (Vue 配置页)
 ```
 
 关键策略：**首 chunk 缓冲** —— 流式响应在首个有效 token 返回前可无缝切换到下一个模型，避免 CC 任务收到半截响应。
